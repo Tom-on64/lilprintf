@@ -18,7 +18,7 @@ static void _fmtInt(char* buf, size_t maxlen, size_t* pos, int64_t val, int base
     static char digits[PF_ITOA_BUFLEN];
     int sign = 0;
 
-    if (value < 0 && base == 10) {
+    if (val < 0 && base == 10) {
         sign = 1;
         val = -val;
     }
@@ -27,7 +27,7 @@ static void _fmtInt(char* buf, size_t maxlen, size_t* pos, int64_t val, int base
     do {
         digits[i++] = "0123456789abcdef"[val % base];
         val /= base;
-    } while (val > 0)
+    } while (val > 0);
 
     if (sign) { digits[i++] = '-'; }
     while (i < width) { digits[i++] = pad; }
@@ -68,30 +68,30 @@ static int _vformat(char* buf, size_t maxlen, const char* fmt, va_list va) {
         switch (*fmt) {
               case 'd': {
                 int d = va_arg(va, int);
-                _fmtInt(buf, &pos, maxlen, d, 10, width, pad);
+                _fmtInt(buf, maxlen, &pos, d, 10, width, pad);
                 break;
             } case 'x': {
                 unsigned int x = va_arg(va, unsigned int);
-                _fmtInt(buf, &pos, maxlen, x, 16, width, pad);
+                _fmtInt(buf, maxlen, &pos, x, 16, width, pad);
                 break;
             } case 's': {
                 char* s = va_arg(va, char*);
-                _fmtString(buf, &pos, maxlen, s);
+                _fmtString(buf, maxlen, &pos, s);
                 break;
             } case 'c': {
                 char c = (char)va_arg(va, int);
-                _fmtChar(buf, &pos, maxlen, c);
+                _fmtChar(buf, maxlen, &pos, c);
                 break;
             } case 'f': {
                 double f = va_arg(va, double);
                 int64_t whole = (int64_t)f;
                 int64_t frac = (int64_t)((f - whole) * 1000000);
-                _fmtInt(buf, &pos, maxlen, whole, 10, width, pad);
+                _fmtInt(buf, maxlen, &pos, whole, 10, width, pad);
                 if (pos < maxlen) { buf[pos++] = '.'; }
-                _fmtInt(buf, &pos, maxlen, frac, 10, 6, pad);
+                _fmtInt(buf, maxlen, &pos, frac, 10, 6, pad);
                 break;
             } default: {
-                _fmtChar(buf, &pos, maxlen, *fmt);
+                _fmtChar(buf, maxlen, &pos, *fmt);
                 break;
             }
         }
@@ -103,10 +103,47 @@ static int _vformat(char* buf, size_t maxlen, const char* fmt, va_list va) {
 }
 
 /* Implementation */
-int printf(const char* fmt, ...);
-int vprintf(const char* fmt, va_list va);
-int snprintf(char* buf, size_t len, const char* fmt, ...);
-int vsnprintf(char* buf, size_t len, const char* fmt, va_list va);
-int pprintf(void (*outfn)(char c, void* arg), void* arg, const char* fmt, ...);
-int vpprintf(void (*outfn)(char c, void* arg), void* arg, const char* fnt, va_list va);
+int printf(const char* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    int ret = vprintf(fmt, va);
+    va_end(va);
+    return ret;
+}
+
+int vprintf(const char* fmt, va_list va) {
+    char buf[PF_STR_MAXLEN];
+    int ret = vsnprintf(buf, PF_STR_MAXLEN, fmt, va);
+    _putstr(buf);
+    return ret;
+}
+
+int snprintf(char* buf, size_t len, const char* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    int ret = vsnprintf(buf, len, fmt, va);
+    va_end(va);
+    return ret;
+}
+
+int vsnprintf(char* buf, size_t len, const char* fmt, va_list va) {
+    return _vformat(buf, len, fmt, va);
+}
+
+int pprintf(void (*outfn)(char c, void* arg), void* arg, const char* fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    int ret = vpprintf(outfn, arg, fmt, va);
+    va_end(va);
+    return ret;
+}
+
+int vpprintf(void (*outfn)(char c, void* arg), void* arg, const char* fmt, va_list va) {
+    char buf[PF_STR_MAXLEN];
+    int ret = vsnprintf(buf, PF_STR_MAXLEN, fmt, va);
+    int i = 0;
+    while (i < ret) { outfn(buf[i++], arg); }
+
+    return ret;
+}
 

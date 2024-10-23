@@ -1,13 +1,14 @@
-#ifndef _PRINTF_H
 /**************************************************************
  * \author Tom-on
  * \breif  Lilprintf is the smallest full-ish printf() 
  *         implementation i was able to write. It is intended
  *         as the printf implementation for my OS kern.
  **************************************************************/
+#ifndef _PRINTF_H
 #define _PRINTF_H
 
 #include <stdarg.h>
+#include <stddef.h>
 
 /*
  * This function outputs a character to the standard output
